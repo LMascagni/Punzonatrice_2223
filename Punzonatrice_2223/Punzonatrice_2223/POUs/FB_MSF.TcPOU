@@ -83,9 +83,22 @@ tr_78	:=	enable AND NOT i1;
 tr_80	:=	enable AND mArresto;
 tr_82	:=	enable AND NOT mArresto AND i1 AND T82.Q;
 tr_EA	:=	enable AND	emerg AND ack;
-tr_A0	:=	enable AND mPezzoCarico AND NOT i1 AND i3 OR (NOT mPezzoCarico AND i3);
+tr_A0	:=	enable AND mPezzoCarico AND NOT i1 AND (i3 OR (NOT mPezzoCarico AND i3));
 
-]]></ST>
+//6) Switch-case della MSF
+CASE stato OF
+S0:
+	mArresto	 := FALSE;
+	mPezzoCarico := FALSE;
+	IF tr_02 THEN
+		stato := S2;
+	ELSIF tr_01 THEN
+		stato := S1;	
+	END_IF
+	
+S1:
+	
+END_CASE]]></ST>
     </Implementation>
     <LineIds Name="FB_MSF">
       <LineId Id="99" Count="0" />
@@ -105,6 +118,15 @@ tr_A0	:=	enable AND mPezzoCarico AND NOT i1 AND i3 OR (NOT mPezzoCarico AND i3);
       <LineId Id="166" Count="0" />
       <LineId Id="184" Count="0" />
       <LineId Id="183" Count="0" />
+      <LineId Id="235" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="255" Count="1" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="264" Count="0" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="267" Count="2" />
+      <LineId Id="237" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

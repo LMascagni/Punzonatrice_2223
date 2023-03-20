@@ -47,15 +47,64 @@ VAR
 	tr_EA	:	BOOL;
 	tr_A0	:	BOOL;
 	
+	mArresto:	BOOL;
+	mPezzoCarico :	BOOL;
+
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[// qui codifico la MSF in ST
-//prova Gratton]]></ST>
+      <ST><![CDATA[//1) Aggiornamento delle condizioni di abilitazione
+enable := stop AND emerg;
+
+//2) Aggioramento timers 
+T34(IN := (stato = S3 AND enable), PT := T#2S );
+T82(IN := (stato = S8 AND enable), PT := T#3S );
+
+//3) Condizione di arresto nominale
+IF NOT stop AND emerg THEN
+	stato := S0;
+END_IF
+
+//4) Condizione di arresto di emergenza
+IF NOT emerg THEN
+	stato := SE;
+END_IF
+
+//5) Aggiornamento delle condizioni di transizione
+tr_01	:=	enable AND start AND NOT i3;
+tr_02	:=	enable AND i3 AND start;
+tr_12	:=	enable AND i3;
+tr_23	:=	enable AND NOT i1;
+tr_34	:=	enable AND NOT i1 AND T34.Q;
+tr_45	:=	enable AND NOT i2;
+tr_56	:=	enable AND i4;
+tr_67	:=	enable AND i3;
+tr_78	:=	enable AND NOT i1;	
+tr_80	:=	enable AND mArresto;
+tr_82	:=	enable AND NOT mArresto AND i1 AND T82.Q;
+tr_EA	:=	enable AND	emerg AND ack;
+tr_A0	:=	enable AND mPezzoCarico AND NOT i1 AND i3 OR (NOT mPezzoCarico AND i3);
+
+]]></ST>
     </Implementation>
     <LineIds Name="FB_MSF">
-      <LineId Id="2" Count="0" />
       <LineId Id="99" Count="0" />
+      <LineId Id="147" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="150" Count="1" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="155" Count="2" />
+      <LineId Id="159" Count="0" />
+      <LineId Id="158" Count="0" />
+      <LineId Id="160" Count="2" />
+      <LineId Id="164" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="167" Count="11" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="183" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

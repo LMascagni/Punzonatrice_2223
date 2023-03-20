@@ -47,8 +47,8 @@ VAR
 	tr_EA	:	BOOL;
 	tr_A0	:	BOOL;
 	
-	mArresto:	BOOL;
-	mPezzoCarico :	BOOL;
+	mArresto:     	BOOL:= FALSE;
+	mPezzoCarico :	BOOL:= FALSE;;
 
 END_VAR
 ]]></Declaration>

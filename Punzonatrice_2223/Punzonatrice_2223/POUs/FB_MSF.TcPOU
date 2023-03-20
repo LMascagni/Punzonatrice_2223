@@ -51,13 +51,11 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[// qui codifico la MSF in ST
-
-//commento di test]]></ST>
+]]></ST>
     </Implementation>
     <LineIds Name="FB_MSF">
       <LineId Id="2" Count="0" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="50" Count="0" />
+      <LineId Id="99" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

@@ -51,7 +51,7 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[// qui codifico la MSF in ST
-]]></ST>
+//prova Gratton]]></ST>
     </Implementation>
     <LineIds Name="FB_MSF">
       <LineId Id="2" Count="0" />

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
   <POU Name="FB_MSF" Id="{8958899a-8fff-4e45-a6bb-190687dc6c0a}" SpecialFunc="None">
     <Declaration><![CDATA[FUNCTION_BLOCK FB_MSF
@@ -29,6 +29,9 @@ VAR
 	T34		:	TON();
 	T82		:	TON();
 	
+	// lampeggiatore
+	osc	:	FB_Oscillatore();
+	
 	// bit di abilitazione
 	enable	:	BOOL;
 	
@@ -47,74 +50,72 @@ VAR
 	tr_EA	:	BOOL;
 	tr_A0	:	BOOL;
 	
-	mArresto:     	BOOL:= FALSE;
-	mPezzoCarico :	BOOL:= FALSE;;
-
+	// memoria dello stop nominale
+	mArresto:	BOOL := FALSE;
+	
+	// memoria di un pezzo in lavorazione sul nastro
+	mPezzoCarico	:	BOOL := FALSE;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[//1) Aggiornamento delle condizioni di abilitazione
+      <ST><![CDATA[// 1. aggiornamento condizioni di abilitazione
 enable := stop AND emerg;
-
-//2) Aggioramento timers 
+// 2. aggiornamento di timers, contatori, triggers sui fronti
 T34(IN := (stato = S3 AND enable), PT := T#2S );
 T82(IN := (stato = S8 AND enable), PT := T#3S );
-
-//3) Condizione di arresto nominale
-IF NOT stop AND emerg AND (stato = S1 OR stato = S2) THEN
-	stato := S0;
-ELSIF NOT stop AND emerg AND stato <> S0 THEN
-	mArresto := 1;
+osc(enable := (stato = SA) OR (stato = SE), t_high := T#500MS, t_low := T#500MS);
+// 3. condizione di arresto nominale
+IF NOT stop AND emerg THEN
+	IF (stato = S1 OR stato = S2) THEN
+		stato := S0;
+	ELSIF (stato = S3 OR stato = S4 OR stato = S5 OR stato = S6 OR stato = S7 OR stato = S8) THEN
+		mArresto := TRUE;
+	END_IF
 END_IF
-
-//4) Condizione di arresto di emergenza
+// 4. condizione di arresto di emergenza
 IF NOT emerg THEN
 	stato := SE;
 END_IF
-
-//5) Aggiornamento delle condizioni di transizione
-tr_01	:=	enable AND start AND NOT i3;
-tr_02	:=	enable AND i3 AND start;
-tr_12	:=	enable AND i3;
-tr_23	:=	enable AND NOT i1;
-tr_34	:=	enable AND NOT i1 AND T34.Q;
-tr_45	:=	enable AND NOT i2;
-tr_56	:=	enable AND i4;
-tr_67	:=	enable AND i3;
-tr_78	:=	enable AND NOT i1;	
-tr_80	:=	enable AND mArresto;
-tr_82	:=	enable AND NOT mArresto AND i1 AND T82.Q;
-tr_EA	:=	enable AND	emerg AND ack;
-tr_A0	:=	enable AND mPezzoCarico AND NOT i1 AND (i3 OR (NOT mPezzoCarico AND i3));
-
-//6) Switch-case della MSF
+// 5. aggiornamento delle condizioni di transizione
+tr_01 := NOT(i3) AND start AND enable;
+tr_02 := i3 AND start AND enable;
+tr_12 := i3 AND enable; 
+tr_23 := enable AND NOT(i1);
+tr_34 := enable AND NOT(i1) AND T34.Q;
+tr_45 := NOT(i2) AND enable;
+tr_56 := enable AND i4;
+tr_67 := enable AND i3;
+tr_78 := enable AND NOT(i1);
+tr_80 := enable AND mArresto;
+tr_82 := enable AND NOT(mArresto) AND i1 AND T82.Q;
+tr_EA := emerg AND ack;
+tr_A0 := (mPezzoCarico AND NOT(i1) AND i3) OR (NOT(mPezzoCarico) AND i3);
+// 6. switch-case della MSF
 CASE stato OF
 S0:
-	mArresto	 := FALSE;
+	mArresto := FALSE;
 	mPezzoCarico := FALSE;
-	IF tr_02 THEN
-		stato := S2;
-	ELSIF tr_01 THEN
-		stato := S1;	
-	END_IF
+    IF tr_02 THEN
+    	stato := S2;
+    ELSIF tr_01 THEN
+		stato := S1;
+    END_IF	
 	
 S1:
 	IF tr_12 THEN
 		stato := S2;
 	END_IF
-
 S2:
 	mPezzoCarico := FALSE;
 	IF tr_23 THEN
 		stato := S3;
 	END_IF
-	
-S3:	
-	mPezzoCarico :=1;
+S3:
+	mPezzoCarico := TRUE;
 	IF tr_34 THEN
 		stato := S4;
-	END_IF
-	
+	END_IF	
 S4:
 	IF tr_45 THEN
 		stato := S5;
@@ -124,92 +125,42 @@ S5:
 	IF tr_56 THEN
 		stato := S6;
 	END_IF
-	
 S6:
 	IF tr_67 THEN
 		stato := S7;
 	END_IF
-	
 S7:
 	IF tr_78 THEN
 		stato := S8;
 	END_IF
-	
 S8:
 	IF tr_80 THEN
-		stato := S0;
-	ELSIF tr_82 THEN
+    	stato := S0;
+    ELSIF tr_82 THEN
 		stato := S2;
-	END_IF
-
+    END_IF
 SE:
 	IF tr_EA THEN
 		stato := SA;
 	END_IF
-	
 SA:
 	IF tr_A0 THEN
 		stato := S0;
 	END_IF
+ELSE
+	// fail over: la variabile di stato è danneggiata, vai in SE
+	stato := SE;	
 	
-END_CASE]]></ST>
+END_CASE
+// 7. comando uscite
+lstart := (stato <> S0);
+lstop := (stato = S0) OR ((stato = SE) AND osc.Q);
+lack := (stato = SE) OR ((stato = SA) AND osc.Q);
+q1 := (stato = S4);
+q2 := (stato = S7) OR ((stato = SA) AND mPezzoCarico);
+q3 := (stato = S1) OR (stato = S6) OR ((stato = SA) AND NOT(i3));
+q4 := (stato = S5);
+]]></ST>
     </Implementation>
-    <LineIds Name="FB_MSF">
-      <LineId Id="99" Count="0" />
-      <LineId Id="147" Count="0" />
-      <LineId Id="149" Count="0" />
-      <LineId Id="148" Count="0" />
-      <LineId Id="150" Count="1" />
-      <LineId Id="154" Count="0" />
-      <LineId Id="153" Count="0" />
-      <LineId Id="155" Count="1" />
-      <LineId Id="321" Count="1" />
-      <LineId Id="157" Count="0" />
-      <LineId Id="159" Count="0" />
-      <LineId Id="158" Count="0" />
-      <LineId Id="160" Count="2" />
-      <LineId Id="164" Count="0" />
-      <LineId Id="163" Count="0" />
-      <LineId Id="167" Count="11" />
-      <LineId Id="166" Count="0" />
-      <LineId Id="184" Count="0" />
-      <LineId Id="183" Count="0" />
-      <LineId Id="235" Count="0" />
-      <LineId Id="246" Count="0" />
-      <LineId Id="379" Count="0" />
-      <LineId Id="256" Count="0" />
-      <LineId Id="261" Count="0" />
-      <LineId Id="265" Count="1" />
-      <LineId Id="264" Count="0" />
-      <LineId Id="242" Count="0" />
-      <LineId Id="267" Count="1" />
-      <LineId Id="324" Count="2" />
-      <LineId Id="328" Count="0" />
-      <LineId Id="327" Count="0" />
-      <LineId Id="378" Count="0" />
-      <LineId Id="377" Count="0" />
-      <LineId Id="330" Count="4" />
-      <LineId Id="380" Count="0" />
-      <LineId Id="335" Count="7" />
-      <LineId Id="344" Count="2" />
-      <LineId Id="343" Count="0" />
-      <LineId Id="347" Count="0" />
-      <LineId Id="349" Count="2" />
-      <LineId Id="348" Count="0" />
-      <LineId Id="352" Count="0" />
-      <LineId Id="354" Count="2" />
-      <LineId Id="353" Count="0" />
-      <LineId Id="357" Count="0" />
-      <LineId Id="359" Count="4" />
-      <LineId Id="358" Count="0" />
-      <LineId Id="365" Count="0" />
-      <LineId Id="364" Count="0" />
-      <LineId Id="366" Count="2" />
-      <LineId Id="370" Count="0" />
-      <LineId Id="372" Count="2" />
-      <LineId Id="371" Count="0" />
-      <LineId Id="269" Count="0" />
-      <LineId Id="237" Count="0" />
-    </LineIds>
   </POU>
 </TcPlcObject>

@@ -61,8 +61,10 @@ T34(IN := (stato = S3 AND enable), PT := T#2S );
 T82(IN := (stato = S8 AND enable), PT := T#3S );
 
 //3) Condizione di arresto nominale
-IF NOT stop AND emerg THEN
+IF NOT stop AND emerg AND (stato = S1 OR stato = S2) THEN
 	stato := S0;
+ELSIF NOT stop AND emerg AND stato <> S0 THEN
+	mArresto := 1;
 END_IF
 
 //4) Condizione di arresto di emergenza
@@ -97,6 +99,58 @@ S0:
 	END_IF
 	
 S1:
+	IF tr_12 THEN
+		stato := S2;
+	END_IF
+
+S2:
+	mPezzoCarico := FALSE;
+	IF tr_23 THEN
+		stato := S3;
+	END_IF
+	
+S3:	
+	mPezzoCarico :=1;
+	IF tr_34 THEN
+		stato := S4;
+	END_IF
+	
+S4:
+	IF tr_45 THEN
+		stato := S5;
+	END_IF
+	
+S5:
+	IF tr_56 THEN
+		stato := S6;
+	END_IF
+	
+S6:
+	IF tr_67 THEN
+		stato := S7;
+	END_IF
+	
+S7:
+	IF tr_78 THEN
+		stato := S8;
+	END_IF
+	
+S8:
+	IF tr_80 THEN
+		stato := S0;
+	ELSIF tr_82 THEN
+		stato := S2;
+	END_IF
+
+SE:
+	IF tr_EA THEN
+		stato := SA;
+	END_IF
+	
+SA:
+	IF tr_A0 THEN
+		stato := S0;
+	END_IF
 	
 END_CASE]]></ST>
     </Implementation>
@@ -108,7 +162,9 @@ END_CASE]]></ST>
       <LineId Id="150" Count="1" />
       <LineId Id="154" Count="0" />
       <LineId Id="153" Count="0" />
-      <LineId Id="155" Count="2" />
+      <LineId Id="155" Count="1" />
+      <LineId Id="321" Count="1" />
+      <LineId Id="157" Count="0" />
       <LineId Id="159" Count="0" />
       <LineId Id="158" Count="0" />
       <LineId Id="160" Count="2" />
@@ -120,12 +176,39 @@ END_CASE]]></ST>
       <LineId Id="183" Count="0" />
       <LineId Id="235" Count="0" />
       <LineId Id="246" Count="0" />
-      <LineId Id="255" Count="1" />
+      <LineId Id="379" Count="0" />
+      <LineId Id="256" Count="0" />
       <LineId Id="261" Count="0" />
       <LineId Id="265" Count="1" />
       <LineId Id="264" Count="0" />
       <LineId Id="242" Count="0" />
-      <LineId Id="267" Count="2" />
+      <LineId Id="267" Count="1" />
+      <LineId Id="324" Count="2" />
+      <LineId Id="328" Count="0" />
+      <LineId Id="327" Count="0" />
+      <LineId Id="378" Count="0" />
+      <LineId Id="377" Count="0" />
+      <LineId Id="330" Count="4" />
+      <LineId Id="380" Count="0" />
+      <LineId Id="335" Count="7" />
+      <LineId Id="344" Count="2" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="347" Count="0" />
+      <LineId Id="349" Count="2" />
+      <LineId Id="348" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="354" Count="2" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="357" Count="0" />
+      <LineId Id="359" Count="4" />
+      <LineId Id="358" Count="0" />
+      <LineId Id="365" Count="0" />
+      <LineId Id="364" Count="0" />
+      <LineId Id="366" Count="2" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="372" Count="2" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="269" Count="0" />
       <LineId Id="237" Count="0" />
     </LineIds>
   </POU>
